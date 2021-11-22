@@ -84,7 +84,7 @@ def progress_reporting(total: int = 100, name: Optional[str] = None,
 
 
 
-@reports_progress
+@reports_progress # do always produce an extra level of pbar
 def compute1():
     pass
 
@@ -113,13 +113,13 @@ def huge_compute1():
 
     # introduces a new progress bar bound to the parent
     # it will make at most 20% from the parent pbar
-    with progress_reporting(total=20, name='step 3', inherit=True):
+    with progress_reporting(total=20, name='step 3', inherit=True, capture=True): # Captures ALL the subsequent levels into this
         # all the progress from is reported to the new pbar
         # it also translates % updates to the parent pbar transparently
         compute3()
 
     # introduces a new independent progress bar for own needs
-    with progress_reporting(name='extra', inherit=False) as pbar:
+    with progress_reporting(name='extra', inherit=False, capture=True) as pbar:
         # all the progress from is reported to the new pbar
         compute4()
         do_stuff(pbar)
@@ -139,3 +139,5 @@ def huge_compute2():
         # all the progress from is reported to the new pbar
         # it also translates % updates to the parent pbar transparently
         huge_compute1()
+
+# granularity / verbose iface / intrusive iface trade-off
