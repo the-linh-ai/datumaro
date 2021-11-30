@@ -3,7 +3,10 @@
 # SPDX-License-Identifier: MIT
 
 from glob import iglob
-from typing import Any, Callable, Dict, Iterable, List, Optional
+from typing import (
+    Any, Callable, Container, Dict, Iterable, List, NewType, NoReturn, Optional,
+    Union,
+)
 import os
 import os.path as osp
 
@@ -15,7 +18,7 @@ from datumaro.components.annotation import (
     Annotation, AnnotationType, Categories,
 )
 from datumaro.components.cli_plugin import CliPlugin
-from datumaro.components.errors import DatasetNotFoundError
+from datumaro.components.errors import DatasetNotFoundError, DatumaroError
 from datumaro.components.format_detection import (
     FormatDetectionConfidence, FormatDetectionContext,
 )
@@ -339,3 +342,43 @@ class ItemTransform(Transform):
             item = self.transform_item(item)
             if item is not None:
                 yield item
+
+
+class FailedOperation(DatumaroError):
+    pass
+
+ErrorAction = NewType('ErrorAction', str)
+
+class ErrorPolicy:
+    def report_error(self, error: Exception,
+            supported_actions: Container[ErrorAction]) \
+            -> Union[ErrorAction, NoReturn]:
+        supported_actions = set(supported_actions)
+
+        assert supported_actions, \
+            "If error reporting is supported, at " \
+            "least one option to recover must be provided"
+
+        supported_actions.add('fail')
+
+        action = self.get_action(error, supported_actions)
+        assert action in supported_actions
+
+        if action == 'fail':
+            self.fail(error)
+        else:
+            return action
+
+    def get_action(self, error: Exception,
+            supported_actions: Container[ErrorAction]) -> ErrorAction:
+        return next(iter(supported_actions))
+
+    def is_critical(self, error: Exception) -> bool:
+        return False
+
+    def fail(self, error: Exception) -> NoReturn:
+        raise FailedOperation() from error
+
+class RaisingErrorPolicy(ErrorPolicy):
+    def get_action(self, error, supported_actions):
+        return 'fail'

@@ -24,8 +24,8 @@ from datumaro.components.errors import (
     UnknownFormatError,
 )
 from datumaro.components.extractor import (
-    DEFAULT_SUBSET_NAME, CategoriesInfo, DatasetItem, Extractor, IExtractor,
-    ItemTransform, Transform,
+    DEFAULT_SUBSET_NAME, CategoriesInfo, DatasetItem, ErrorPolicy, Extractor, FailedOperation,
+    IExtractor, ItemTransform, RaisingErrorPolicy, Transform,
 )
 from datumaro.plugins.transforms import ProjectLabels
 from datumaro.util import is_method_redefined
@@ -867,7 +867,8 @@ class Dataset(IDataset):
         return cls.import_from(path, format=DEFAULT_FORMAT, **kwargs)
 
     @classmethod
-    def import_from(cls, path: str, format: Optional[str] = None,
+    def import_from(cls, path: str, format: Optional[str] = None, *,
+            error_policy: Optional[ErrorPolicy] = None,
             env: Optional[Environment] = None, **kwargs) -> 'Dataset':
         from datumaro.components.config_model import Source
 
@@ -889,17 +890,25 @@ class Dataset(IDataset):
         else:
             raise UnknownFormatError(format)
 
-        extractors = []
-        for src_conf in detected_sources:
-            if not isinstance(src_conf, Source):
-                src_conf = Source(src_conf)
-            extractors.append(env.make_extractor(
-                src_conf.format, src_conf.url, **src_conf.options
-            ))
+        if not error_policy:
+            error_policy = RaisingErrorPolicy()
 
-        dataset = cls.from_extractors(*extractors, env=env)
-        dataset._source_path = path
-        dataset._format = format
+        try:
+            extractors = []
+            for src_conf in detected_sources:
+                if not isinstance(src_conf, Source):
+                    src_conf = Source(src_conf)
+                extractors.append(env.make_extractor(
+                    src_conf.format, src_conf.url, import_context=error_policy,
+                    **src_conf.options
+                ))
+
+            dataset = cls.from_extractors(*extractors, env=env)
+            dataset._source_path = path
+            dataset._format = format
+        except FailedOperation as e:
+            raise e.__cause__
+
         return dataset
 
     @staticmethod

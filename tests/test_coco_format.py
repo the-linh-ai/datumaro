@@ -1,5 +1,6 @@
 from functools import partial
 from itertools import product
+import json
 from unittest import TestCase
 import os
 import os.path as osp
@@ -12,7 +13,8 @@ from datumaro.components.annotation import (
 )
 from datumaro.components.dataset import Dataset
 from datumaro.components.environment import Environment
-from datumaro.components.extractor import DatasetItem
+from datumaro.components.errors import MissingLabelCategories, UndefinedLabel
+from datumaro.components.extractor import DatasetItem, ErrorPolicy, FailedOperation
 from datumaro.components.media import Image
 from datumaro.plugins.coco_format.converter import (
     CocoCaptionsConverter, CocoConverter, CocoImageInfoConverter,
@@ -1246,7 +1248,7 @@ class CocoConverterTest(TestCase):
             compare_datasets(self, expected, Dataset.import_from(path, 'coco'),
                 require_images=True, ignored_attrs={'id'})
 
-    @mark_requirement(Requirements. DATUM_BUG_425)
+    @mark_requirement(Requirements.DATUM_BUG_425)
     def test_can_save_and_load_grouped_masks_and_polygons(self):
         source_dataset = Dataset.from_iterable([
             DatasetItem(id=1, image=np.zeros((5, 5, 3)),
@@ -1283,5 +1285,60 @@ class CocoConverterTest(TestCase):
 
         with TestDir() as test_dir:
             self._test_save_and_load(source_dataset,
-                 partial(CocoInstancesConverter.convert),
-                 test_dir, target_dataset=target_dataset)
+                partial(CocoInstancesConverter.convert),
+                test_dir, target_dataset=target_dataset)
+
+    @mark_requirement(Requirements.DATUM_ERROR_REPORTING)
+    def test_can_report_missing_categories(self):
+        with TestDir() as test_dir:
+            with open(osp.join(test_dir, 'instances_default.json'), 'w',
+                    encoding='utf8') as f:
+                json.dump({
+                    'annotations': [],
+                    'images': [],
+                    'licenses': [],
+                    'info': {}
+                    # no categories
+                }, f)
+
+            with self.assertRaises(MissingLabelCategories):
+                Dataset.import_from(test_dir, 'coco_instances')
+
+    @mark_requirement(Requirements.DATUM_ERROR_REPORTING)
+    def test_can_report_undefined_label(self):
+        source_dataset = Dataset.from_iterable([
+            DatasetItem(id=1, image=np.zeros((5, 5, 3)),
+                annotations=[
+                    Bbox(0, 0, 1, 1, label=2)
+                ]
+            ),
+        ], categories=['label_1'])
+
+        with TestDir() as test_dir:
+            source_dataset.export(test_dir, 'coco_instances')
+
+            with self.assertRaises(UndefinedLabel):
+                Dataset.import_from(test_dir, 'coco_instances')
+
+    @mark_requirement(Requirements.DATUM_ERROR_REPORTING)
+    def test_can_skip_undefined_label(self):
+        class TestErrorPolicy(ErrorPolicy):
+            def get_action(self, error, supported_actions):
+                assert isinstance(error, UndefinedLabel)
+                assert supported_actions == {'add_label', 'skip_item', 'skip_ann'}
+                return 'add_label'
+
+        source_dataset = Dataset.from_iterable([
+            DatasetItem(id=1, image=np.zeros((5, 5, 3)),
+                annotations=[
+                    Bbox(0, 0, 1, 1, label=2)
+                ]
+            ),
+        ], categories=['label_1'])
+
+        with TestDir() as test_dir:
+            source_dataset.export(test_dir, 'coco_instances')
+
+            dataset = Dataset.import_from(test_dir, 'coco_instances',
+                error_policy=TestErrorPolicy())
+
