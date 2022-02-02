@@ -5,11 +5,13 @@
 from __future__ import annotations
 
 from glob import iglob
-from typing import Any, Callable, Dict, Iterator, List, Optional
+from typing import (
+    Any, Callable, Dict, Iterable, Iterator, List, Mapping, Optional, Union,
+)
 import os
 import os.path as osp
 
-from attr import attrs, field
+from attrs import define
 import attr
 import numpy as np
 
@@ -23,52 +25,81 @@ from datumaro.components.format_detection import (
 )
 from datumaro.components.media import Image
 from datumaro.util import is_method_redefined
-from datumaro.util.attrs_util import default_if_none, not_empty
 
 DEFAULT_SUBSET_NAME = 'default'
 
-@attrs(slots=True, order=False)
+_ImageLike = Union[str, Callable[[str], np.ndarray], np.ndarray, Image]
+
+@define
 class DatasetItem:
-    id: str = field(converter=lambda x: str(x).replace('\\', '/'),
-        validator=not_empty)
-    annotations: List[Annotation] = field(
-        factory=list, validator=default_if_none(list))
-    subset: str = field(converter=lambda v: v or DEFAULT_SUBSET_NAME,
-        default=None)
+    id: str
+    annotations: List[Annotation]
+    subset: str
 
     # TODO: introduce "media" field with type info. Replace image and pcd.
-    image: Optional[Image] = field(default=None)
+    image: Optional[Image]
     # TODO: introduce pcd type like Image
-    point_cloud: Optional[str] = field(
-        converter=lambda x: str(x).replace('\\', '/') if x else None,
-        default=None)
-    related_images: List[Image] = field(default=None)
+    point_cloud: Optional[str]
+    related_images: List[Image]
 
-    def __attrs_post_init__(self):
-        if (self.has_image and self.has_point_cloud):
-            raise ValueError("Can't set both image and point cloud info")
-        if self.related_images and not self.has_point_cloud:
-            raise ValueError("Related images require point cloud")
+    attributes: Dict[str, Any]
 
+    def __init__(self, id: Union[int, str],
+            subset: Optional[str] = None,
+            image: Optional[_ImageLike]  = None,
+            point_cloud: Optional[str] = None,
+            related_images: Optional[Iterable[_ImageLike]] = None,
+            annotations: Optional[Iterable[Annotation]] = None,
+            attributes: Optional[Mapping[str, Any]] = None):
+        if isinstance(id, int):
+            id = str(id)
+        else:
+            assert id and isinstance(id, str)
+        self.id = id.replace('\\', '/')
+
+        assert not subset or isinstance(subset, str)
+        self.subset = subset or DEFAULT_SUBSET_NAME
+
+        if annotations is None:
+            annotations = []
+        else:
+            assert isinstance(annotations, list)
+        self.annotations = annotations
+
+        if attributes is None:
+            attributes = {}
+        else:
+            assert isinstance(attributes, dict)
+        self.attributes = attributes
+
+        assert not (image is not None and point_cloud), \
+            "Can't set both image and point cloud info"
+        assert not related_images or point_cloud, \
+            "Related images require point cloud"
+
+        if image is not None:
+            image = self._image_converter(image)
+        self.image = image
+
+        if point_cloud:
+            point_cloud = point_cloud.replace('\\', '/')
+        self.point_cloud = point_cloud
+
+        if related_images:
+            related_images = [self._image_converter(i) for i in related_images]
+        elif point_cloud:
+            related_images = []
+        self.related_images = related_images
+
+    @staticmethod
     def _image_converter(image):
-        if callable(image) or isinstance(image, np.ndarray):
-            image = Image(data=image)
-        elif isinstance(image, str):
+        if isinstance(image, str):
             image = Image(path=image)
-        assert image is None or isinstance(image, Image), type(image)
+        elif callable(image) or isinstance(image, np.ndarray):
+            image = Image(data=image)
+        else:
+            assert image is None or isinstance(image, Image), type(image)
         return image
-    image.converter = _image_converter
-
-    def _related_image_converter(images):
-        return list(map(__class__._image_converter, images or []))
-    related_images.converter = _related_image_converter
-
-    @point_cloud.validator
-    def _point_cloud_validator(self, attribute, pcd):
-        assert pcd is None or isinstance(pcd, str), type(pcd)
-
-    attributes: Dict[str, Any] = field(
-        factory=dict, validator=default_if_none(dict))
 
     @property
     def has_image(self):

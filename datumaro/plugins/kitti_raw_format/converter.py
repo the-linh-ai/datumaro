@@ -418,7 +418,7 @@ class KittiRawConverter(Converter):
             if item.has_point_cloud:
                 self._save_point_cloud(item, subdir=KittiRawPath.PCD_DIR)
 
-            images = sorted(item.related_images, key=lambda img: img.path)
+            images = sorted(item.related_images or [], key=lambda img: img.path)
             for i, image in enumerate(images):
                 if image.has_data:
                     image.save(osp.join(self._save_dir,

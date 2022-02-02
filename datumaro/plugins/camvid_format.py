@@ -209,7 +209,7 @@ class CamvidExtractor(SourceExtractor):
                         if labels[label_id] in self._labels:
                             image = self._lazy_extract_mask(mask, label_id)
                             item_annotations.append(
-                                Mask(image=image, label=label_id))
+                                Mask(image=image, label=int(label_id)))
 
                 items[item_id] = DatasetItem(id=item_id, subset=self._subset,
                     image=image_path, annotations=item_annotations)

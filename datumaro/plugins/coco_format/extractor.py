@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: MIT
 
 from typing import Any
-import json
 import logging as log
 import os.path as osp
 
 from attrs import define
+import orjson
 import pycocotools.mask as mask_utils
 
 from datumaro.components.annotation import (
@@ -129,7 +129,7 @@ class _CocoExtractor(SourceExtractor):
     @staticmethod
     def _load_json(path):
         with open(path, 'rb') as f:
-            return json.loads(f.read())
+            return orjson.loads(f.read())
 
     def _load_items(self, json_data):
         items = {}
@@ -256,12 +256,19 @@ class _CocoExtractor(SourceExtractor):
                 rle = None
 
                 if isinstance(segmentation, list):
+                    if len(segmentation) == 1:
+                        area = ann.get('area')
+                    else:
+                        area = None
+
                     if not self._merge_instance_polygons:
                         # polygon - a single object can consist of multiple parts
+
                         for polygon_points in segmentation:
                             parsed_annotations.append(Polygon(
                                 points=polygon_points, label=label_id,
-                                id=ann_id, attributes=attributes, group=group
+                                id=ann_id, attributes=attributes, group=group,
+                                area=area
                             ))
                     else:
                         # merge all parts into a single mask RLE
@@ -275,6 +282,7 @@ class _CocoExtractor(SourceExtractor):
                     if img_h == mask_h and img_w == mask_w:
                         rle = self._lazy_merged_mask(
                             [segmentation], mask_h, mask_w)
+                        area = ann.get('area')
                     else:
                         log.warning("item #%s: mask #%s "
                             "does not match image size: %s vs. %s. "
@@ -285,10 +293,11 @@ class _CocoExtractor(SourceExtractor):
                 else:
                     # compressed RLE
                     rle = segmentation
+                    area = ann.get('area')
 
                 if rle:
                     parsed_annotations.append(RleMask(rle=rle, label=label_id,
-                        id=ann_id, attributes=attributes, group=group
+                        id=ann_id, attributes=attributes, group=group, area=area
                     ))
             else:
                 x, y, w, h = ann['bbox']

@@ -1232,14 +1232,15 @@ class DatasetTest(TestCase):
     @mark_requirement(Requirements.DATUM_GENERAL_REQ)
     def test_can_run_model(self):
         dataset = Dataset.from_iterable([
-            DatasetItem(i, image=np.array([i]))
+            DatasetItem(i, image=np.ones((1, 1)) * i)
             for i in range(5)
         ], categories=['label'])
 
         batch_size = 3
 
         expected = Dataset.from_iterable([
-            DatasetItem(i, image=np.array([i]), annotations=[
+            DatasetItem(i, image=np.ones((1, 1)) * i,
+            annotations=[
                 Label(0, attributes={ 'idx': i % batch_size, 'data': i })
             ])
             for i in range(5)

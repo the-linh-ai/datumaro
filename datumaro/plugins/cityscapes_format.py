@@ -254,7 +254,7 @@ class CityscapesExtractor(SourceExtractor):
                     ann_id = segm_id % 1000
                 anns.append(Mask(
                     image=self._lazy_extract_mask(instances_mask, segm_id),
-                    label=label_id, id=ann_id,
+                    label=int(label_id), id=int(ann_id or 0),
                     attributes = { 'is_crowd': is_crowd }))
 
             items[item_id] = DatasetItem(id=item_id, subset=self._subset,

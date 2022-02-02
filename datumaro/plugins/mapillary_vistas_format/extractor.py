@@ -182,7 +182,7 @@ class _MapillaryVistasExtractor(SourceExtractor):
                 annotations.append(
                     Mask(
                         image=self._lazy_extract_mask(mask, uval),
-                        label=label_id, id=instance_id
+                        label=int(label_id), id=int(instance_id)
                     )
                 )
 
@@ -201,7 +201,7 @@ class _MapillaryVistasExtractor(SourceExtractor):
 
             annotations = []
             for label_id in classes:
-                annotations.append(Mask(label=label_id,
+                annotations.append(Mask(label=int(label_id),
                     image=self._lazy_extract_mask(class_mask, label_id))
                 )
 

@@ -28,6 +28,8 @@ def find_instances(instance_anns):
     return ann_groups
 
 def find_group_leader(group):
+    if len(group) == 1:
+        return group[0]
     return max(group, key=lambda x: x.get_area())
 
 BboxCoords = Tuple[float, float, float, float]

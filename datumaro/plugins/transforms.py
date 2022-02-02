@@ -242,7 +242,7 @@ class MasksToPolygons(ItemTransform, CliPlugin):
         polygons = mask_tools.mask_to_polygons(mask.image)
 
         return [
-            Polygon(points=p, label=mask.label, z_order=mask.z_order,
+            Polygon(points=p.tolist(), label=mask.label, z_order=mask.z_order,
                 id=mask.id, attributes=mask.attributes, group=mask.group)
             for p in polygons
         ]

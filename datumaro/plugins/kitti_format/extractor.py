@@ -81,7 +81,7 @@ class _KittiExtractor(SourceExtractor):
                     isCrowd = (ann_id == 0)
                     anns.append(Mask(
                         image=self._lazy_extract_mask(instances_mask, segm_id),
-                        label=semantic_id, id=ann_id,
+                        label=int(semantic_id), id=int(ann_id),
                         attributes={ 'is_crowd': isCrowd }))
 
                 items[item_id] = DatasetItem(id=item_id, annotations=anns,

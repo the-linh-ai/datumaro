@@ -102,8 +102,8 @@ class MotsPngExtractor(SourceExtractor):
             else:
                 class_id -= 1
             masks.append(Mask(self._lazy_extract_mask(combined_mask, obj_id),
-                label=class_id, z_order=z_order,
-                attributes={'track_id': instance_id}))
+                label=int(class_id), z_order=z_order,
+                attributes={'track_id': int(instance_id)}))
         return masks
 
 

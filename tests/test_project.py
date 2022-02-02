@@ -82,7 +82,7 @@ class ProjectTest(TestCase):
         class TestLauncher(Launcher):
             def launch(self, inputs):
                 for inp in inputs:
-                    yield [ Label(inp[0, 0, 0]) ]
+                    yield [ Label(int(inp[0, 0, 0])) ]
 
         expected = Dataset.from_iterable([
             DatasetItem(0, image=np.zeros([2, 2, 3]), annotations=[Label(0)]),

@@ -137,7 +137,7 @@ class SynthiaExtractor(SourceExtractor):
                         attr['dynamic_object'] = True
                     anno.append(Mask(
                         image=self._lazy_extract_mask(labels_mask, segm_id),
-                        label=segm_id, attributes=attr))
+                        label=int(segm_id), attributes=attr))
 
                 items[item_id] = DatasetItem(id=item_id, image=images[item_id],
                     annotations=anno)
@@ -155,12 +155,12 @@ class SynthiaExtractor(SourceExtractor):
                 color_mask = color_mask()
                 classes = np.unique(color_mask)
                 for label_id in classes:
-                    anno.append(Mask(image=self._lazy_extract_mask(color_mask, label_id),
-                        label=label_id))
+                    anno.append(Mask(
+                        image=self._lazy_extract_mask(color_mask, label_id),
+                        label=int(label_id)))
 
                 items[item_id] = DatasetItem(id=item_id, image=images[item_id],
                     annotations=anno)
-
 
         return items
 

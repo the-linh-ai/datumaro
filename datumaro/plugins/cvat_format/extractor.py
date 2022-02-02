@@ -55,7 +55,7 @@ class CvatExtractor(SourceExtractor):
             if ev == 'start':
                 if el.tag == 'track':
                     track = {
-                        'id': el.attrib['id'],
+                        'id': int(el.attrib['id']),
                         'label': el.attrib.get('label'),
                         'group': int(el.attrib.get('group_id', 0)),
                         'height': frame_size[0],
@@ -64,7 +64,7 @@ class CvatExtractor(SourceExtractor):
                 elif el.tag == 'image':
                     image = {
                         'name': el.attrib.get('name'),
-                        'frame': el.attrib['id'],
+                        'frame': int(el.attrib['id']),
                         'width': el.attrib.get('width'),
                         'height': el.attrib.get('height'),
                     }
