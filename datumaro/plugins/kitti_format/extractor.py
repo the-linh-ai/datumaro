@@ -90,11 +90,17 @@ class _KittiExtractor(SourceExtractor):
 
         det_dir = osp.join(self._path, KittiPath.LABELS_DIR)
         if self._task == KittiTask.detection:
+            is_3d_task = None
             for labels_path in sorted(glob.glob(osp.join(det_dir, '**', '*.txt'),
                     recursive=True)):
                 item_id = osp.splitext(osp.relpath(labels_path, det_dir))[0]
                 # assume image name always have .pcd
-                is_3d_task = ".pcd" in item_id
+                if is_3d_task is None:
+                    is_3d_task = ".pcd" in item_id
+                elif is_3d_task != ".pcd" in item_id:
+                    # Make sure all image belong to the same task (2D or 3D)
+                    raise Exception("2D and 3D format both exists")
+
                 anns = []
 
                 with open(labels_path, 'r', encoding='utf-8') as f:
