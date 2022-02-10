@@ -7,7 +7,7 @@ import os.path as osp
 
 import numpy as np
 
-from datumaro.components.annotation import Bbox, LabelCategories, Mask, Cuboid3d
+from datumaro.components.annotation import Bbox, Cuboid3d, LabelCategories, Mask
 from datumaro.components.extractor import (
     AnnotationType, DatasetItem, SourceExtractor,
 )
