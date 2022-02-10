@@ -7,7 +7,7 @@ import os.path as osp
 
 import numpy as np
 
-from datumaro.components.annotation import Bbox, LabelCategories, Mask
+from datumaro.components.annotation import Bbox, LabelCategories, Mask, Cuboid3d
 from datumaro.components.extractor import (
     AnnotationType, DatasetItem, SourceExtractor,
 )
@@ -93,6 +93,8 @@ class _KittiExtractor(SourceExtractor):
             for labels_path in sorted(glob.glob(osp.join(det_dir, '**', '*.txt'),
                     recursive=True)):
                 item_id = osp.splitext(osp.relpath(labels_path, det_dir))[0]
+                # assume image name always have .pcd
+                is_3d_task = ".pcd" in item_id
                 anns = []
 
                 with open(labels_path, 'r', encoding='utf-8') as f:
@@ -118,10 +120,19 @@ class _KittiExtractor(SourceExtractor):
                         label_id = self.categories()[AnnotationType.label].add(
                             line[0])
 
-                    anns.append(
-                        Bbox(x=x1, y=y1, w=x2-x1, h=y2-y1, id=line_idx,
-                            attributes=attributes, label=label_id,
+                    if is_3d_task:
+                        scale = [float(line[8]), float(line[9]), float(line[10])]
+                        position = [float(line[11]), float(line[12]), float(line[13])]
+                        rotation = [0, 0, float(line[14])]
+                        anns.append(Cuboid3d(
+                            position, rotation, scale, label=label_id,
+                            id=line_idx, attributes=attributes
                         ))
+                    else:
+                        anns.append(
+                            Bbox(x=x1, y=y1, w=x2-x1, h=y2-y1, id=line_idx,
+                                attributes=attributes, label=label_id,
+                            ))
 
                 items[item_id] = DatasetItem(id=item_id, annotations=anns,
                     image=image_path_by_id.pop(item_id, None),
