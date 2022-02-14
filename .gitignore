@@ -68,3 +68,5 @@ site/tech-doc-hugo
 
 # Temporary sphinx files
 site/static/api
+
+logs/
