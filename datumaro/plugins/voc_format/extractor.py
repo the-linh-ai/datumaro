@@ -277,6 +277,7 @@ class VocActionExtractor(_VocXmlExtractor):
 class VocSegmentationExtractor(_VocExtractor):
     def __init__(self, path, **kwargs):
         super().__init__(path, task=VocTask.segmentation, **kwargs)
+        self._class_mask = None
 
     def __iter__(self):
         image_dir = osp.join(self._dataset_dir, VocPath.IMAGES_DIR)
@@ -295,7 +296,8 @@ class VocSegmentationExtractor(_VocExtractor):
             try:
                 yield DatasetItem(id=item_id, subset=self._subset,
                     image=images.get(item_id),
-                    annotations=self._load_annotations(item_id))
+                    annotations=self._load_annotations(item_id),
+                    class_mask=self._class_mask)
             except Exception as e:
                 self._report_item_error(e, item_id=(item_id, self._subset))
 
@@ -349,5 +351,8 @@ class VocSegmentationExtractor(_VocExtractor):
             for label_id in classes:
                 image = self._lazy_extract_mask(class_mask, label_id)
                 item_annotations.append(Mask(image=image, label=label_id))
+
+        if class_mask is not None:
+            self._class_mask = class_mask()
 
         return item_annotations

@@ -17,7 +17,7 @@ import attr
 import numpy as np
 
 from datumaro.components.annotation import (
-    Annotation, AnnotationType, Categories,
+    Annotation, AnnotationType, Categories, IndexMaskImage,
 )
 from datumaro.components.cli_plugin import CliPlugin
 from datumaro.components.errors import (
@@ -51,6 +51,8 @@ class DatasetItem:
         converter=lambda x: str(x).replace('\\', '/') if x else None,
         default=None)
     related_images: List[Image] = field(default=None)
+    # Class mask for semantic segmentation
+    class_mask: Optional[IndexMaskImage] = field(default=None)
 
     def __attrs_post_init__(self):
         if (self.has_image and self.has_point_cloud):
