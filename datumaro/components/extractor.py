@@ -35,7 +35,7 @@ from datumaro.util.attrs_util import default_if_none, not_empty
 
 DEFAULT_SUBSET_NAME = 'default'
 
-@attrs(slots=True, order=False)
+@attrs(slots=True, order=False, eq=False)
 class DatasetItem:
     id: str = field(converter=lambda x: str(x).replace('\\', '/'),
         validator=not_empty)
@@ -53,6 +53,28 @@ class DatasetItem:
     related_images: List[Image] = field(default=None)
     # Class mask for semantic segmentation
     class_mask: Optional[IndexMaskImage] = field(default=None)
+
+    def __eq__(self, other):
+        if other.__class__ is not self.__class__:
+            return False
+
+        return (
+           self.id,
+           self.annotations,
+           self.subset,
+           self.image,
+           self.point_cloud,
+           self.related_images,
+           self.attributes,
+       ) == (
+           other.id,
+           other.annotations,
+           other.subset,
+           other.image,
+           other.point_cloud,
+           other.related_images,
+           other.attributes,
+       ) and np.array_equal(self.class_mask, other.class_mask)
 
     def __attrs_post_init__(self):
         if (self.has_image and self.has_point_cloud):
