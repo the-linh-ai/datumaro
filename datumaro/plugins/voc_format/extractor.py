@@ -353,6 +353,9 @@ class VocSegmentationExtractor(_VocExtractor):
                 item_annotations.append(Mask(image=image, label=label_id))
 
         if class_mask is not None:
-            self._class_mask = class_mask()
+            if callable(class_mask):
+                self._class_mask = class_mask()
+            else:
+                self._class_mask = class_mask
 
         return item_annotations
