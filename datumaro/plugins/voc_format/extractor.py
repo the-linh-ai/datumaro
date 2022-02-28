@@ -293,9 +293,11 @@ class VocSegmentationExtractor(_VocExtractor):
             log.debug("Reading item '%s'" % item_id)
 
             try:
+                annotations, class_mask = self._load_annotations(item_id)
                 yield DatasetItem(id=item_id, subset=self._subset,
                     image=images.get(item_id),
-                    annotations=self._load_annotations(item_id))
+                    annotations=annotations,
+                    class_mask=class_mask)
             except Exception as e:
                 self._report_item_error(e, item_id=(item_id, self._subset))
 
@@ -350,4 +352,8 @@ class VocSegmentationExtractor(_VocExtractor):
                 image = self._lazy_extract_mask(class_mask, label_id)
                 item_annotations.append(Mask(image=image, label=label_id))
 
-        return item_annotations
+        if class_mask is not None:
+            if callable(class_mask):
+                class_mask = class_mask()
+
+        return item_annotations, class_mask
