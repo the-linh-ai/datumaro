@@ -264,6 +264,7 @@ class _SuperviselyPointCloudDumper:
                         'z': float(ann.scale[2]),
                     }
                 },
+                'track_id': ann.attributes.get('track_id', None),
                 **ann_user_info,
             })
             figure_id = ann.id
