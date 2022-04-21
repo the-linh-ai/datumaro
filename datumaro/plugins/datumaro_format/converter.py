@@ -344,3 +344,73 @@ class DatumaroConverter(Converter):
                 DatumaroPath.RELATED_IMAGES_DIR, item.subset, item.id)
             if osp.isdir(related_images_path):
                 shutil.rmtree(related_images_path)
+
+
+class _ImageAttributeSubsetWriter:
+    def __init__(self, context):
+        self._context = context
+
+        self._data = {
+            'info': {},
+            'images': [],
+        }
+
+    @property
+    def images(self):
+        return self._data['images']
+
+    def add_item(self, item):
+        item_desc = {
+            'id': item.id,
+            "attributes": {}
+        }
+        if item.attributes:
+            item_desc.update(item.attributes)
+
+        for ann in item.annotations:
+            if isinstance(ann, Label):
+                assert isinstance(ann, Annotation)
+                if len(ann.attributes) != 0:
+                    # TODO: Validate if any duplicate key
+                    item_desc['attributes'].update(ann.attributes)
+
+        self.images.append(item_desc)
+
+class ImageAttributeConverter(DatumaroConverter):
+    DEFAULT_IMAGE_EXT = DatumaroPath.IMAGE_EXT
+    NAME = "image_attribute"
+
+    def apply(self):
+        os.makedirs(self._save_dir, exist_ok=True)
+
+        images_dir = osp.join(self._save_dir, DatumaroPath.IMAGES_DIR)
+        os.makedirs(images_dir, exist_ok=True)
+        self._images_dir = images_dir
+
+        annotations_dir = osp.join(self._save_dir, DatumaroPath.ANNOTATIONS_DIR)
+        os.makedirs(annotations_dir, exist_ok=True)
+        self._annotations_dir = annotations_dir
+
+        self._pcd_dir = osp.join(self._save_dir, DatumaroPath.PCD_DIR)
+        self._related_images_dir = osp.join(self._save_dir,
+            DatumaroPath.RELATED_IMAGES_DIR)
+
+        writers = {s: _ImageAttributeSubsetWriter(self) for s in self._extractor.subsets()}
+        for writer in writers.values():
+            writer.add_categories(self._extractor.categories())
+
+        for item in self._extractor:
+            subset = item.subset or DEFAULT_SUBSET_NAME
+            writers[subset].add_item(item)
+
+        for subset, writer in writers.items():
+            ann_file = osp.join(self._annotations_dir, '%s.json' % subset)
+
+            if self._patch and subset in self._patch.updated_subsets and \
+                    writer.is_empty():
+                if osp.isfile(ann_file):
+                    # Remove subsets that became empty
+                    os.remove(ann_file)
+                continue
+
+            writer.write(ann_file)
