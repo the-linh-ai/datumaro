@@ -396,8 +396,6 @@ class ImageAttributeConverter(DatumaroConverter):
             DatumaroPath.RELATED_IMAGES_DIR)
 
         writers = {s: _ImageAttributeSubsetWriter(self) for s in self._extractor.subsets()}
-        for writer in writers.values():
-            writer.add_categories(self._extractor.categories())
 
         for item in self._extractor:
             subset = item.subset or DEFAULT_SUBSET_NAME
