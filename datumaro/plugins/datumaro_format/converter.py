@@ -11,6 +11,7 @@ import shutil
 import numpy as np
 import pycocotools.mask as mask_utils
 
+from datetime import date
 from datumaro.components.annotation import (
     Annotation, Bbox, Caption, Cuboid3d, Label, LabelCategories, Mask,
     MaskCategories, Points, PointsCategories, Polygon, PolyLine, RleMask,
@@ -351,7 +352,9 @@ class _ImageAttributeSubsetWriter:
         self._context = context
 
         self._data = {
-            'info': {},
+            'info': {
+                "date_created": date.today().strftime("%d/%m/%Y"),
+            },
             'images': [],
         }
 
