@@ -376,6 +376,9 @@ class _ImageAttributeSubsetWriter:
 
         self.images.append(item_desc)
 
+    def write(self, ann_file):
+        dump_json_file(ann_file, self._data)
+
 class ImageAttributeConverter(DatumaroConverter):
     DEFAULT_IMAGE_EXT = DatumaroPath.IMAGE_EXT
     NAME = "image_attribute"
