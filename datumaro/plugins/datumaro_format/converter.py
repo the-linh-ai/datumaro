@@ -364,7 +364,7 @@ class _ImageAttributeSubsetWriter:
 
     def add_item(self, item):
         item_desc = {
-            'id': item.id,
+            'id': self._context._get_image_id(item),
             "attributes": {}
         }
         if item.attributes:
@@ -382,9 +382,22 @@ class _ImageAttributeSubsetWriter:
     def write(self, ann_file):
         dump_json_file(ann_file, self._data)
 
+
 class ImageAttributeConverter(DatumaroConverter):
     DEFAULT_IMAGE_EXT = DatumaroPath.IMAGE_EXT
     NAME = "image_attribute"
+
+    def __init__(self, extractor, save_dir, **kwargs):
+        super().__init__(extractor, save_dir, **kwargs)
+
+        self._image_ids = {}
+
+    def _get_image_id(self, item):
+        image_id = self._image_ids.get(item.id)
+        if image_id is None:
+            image_id = len(self._image_ids) + 1
+            self._image_ids[item.id] = image_id
+        return image_id
 
     def apply(self):
         os.makedirs(self._save_dir, exist_ok=True)
